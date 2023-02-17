@@ -4,7 +4,6 @@ import torch
 from transformers import BlenderbotTokenizer
 from transformers import BlenderbotTokenizer, BlenderbotForConditionalGeneration, BlenderbotConfig
 from transformers import BlenderbotTokenizerFast 
-import contextlib
 
 mname = "facebook/blenderbot-400M-distill"
 tokenizer = BlenderbotTokenizerFast.from_pretrained(mname)
@@ -25,7 +24,7 @@ def predict(input, history=[]):
 # COMMAND ----------
 
 response = predict(
-  "I'm married with three kids, which car is best for me?",
+  "I'm 40 yo with two kids, which car is best for me?",
   []
 )
 response[-1]
@@ -63,8 +62,8 @@ context = MLflowContext(artifacts)
 pyfunc_model = BlenderbotWrapper()
 pyfunc_model.load_context(context)
 
-payload = {"question": "what car is best for me?", "history": []}
-pyfunc_model.predict(model_input = payload)
+payload = {"question": "I'm 40 yo with two kids, which car is best for me?", "history": []}
+pyfunc_model.predict(model_input = payload, context = context)
 
 # COMMAND ----------
 
@@ -84,3 +83,7 @@ with mlflow.start_run() as run:
 
 model_name = "blenderbot"
 version_info = mlflow.register_model(model_uri = model_info.model_uri, name = model_name)
+
+# COMMAND ----------
+
+

@@ -5,14 +5,16 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import torch
 from transformers import BlenderbotTokenizer
 from transformers import BlenderbotTokenizer, BlenderbotForConditionalGeneration, BlenderbotConfig
-from transformers import BlenderbotTokenizerFast 
+from transformers import BlenderbotTokenizerFast
+import logging
+
 
 class BlenderbotWrapper(mlflow.pyfunc.PythonModel):
     """
     Class to use Blenderbot Model
     """
 
-    def load_context(self, context = None):
+    def load_context(self, context):
         """
           This method is called when loading an MLflow model with pyfunc.load_model(),
           as soon as the Python Model is constructed.
@@ -23,7 +25,7 @@ class BlenderbotWrapper(mlflow.pyfunc.PythonModel):
         self.tokenizer = BlenderbotTokenizerFast.from_pretrained(context.artifacts["hf_tokenizer_path"])
         self.model = BlenderbotForConditionalGeneration.from_pretrained(context.artifacts["hf_model_path"])
 
-    def predict(self, model_input, context = None):
+    def predict(self, context, model_input):
         """This is an abstract function. We customized it into a method to fetch the Hugging Face model.
         Args:
             context ([type]): MLflow context where the model artifact is stored.
@@ -33,12 +35,14 @@ class BlenderbotWrapper(mlflow.pyfunc.PythonModel):
         """
 
         question = model_input["question"]
-        history = model_input["history"]
+        history = list(model_input["history"])
         history.append(question)
     
-        context = ' '.join([str(elem)for elem in history[len(history)-3:]])
+        history_string = ' '.join([str(elem)for elem in history[len(history)-3:]])
+        logging.info("History: {history_string}")
+        
         input_ids = self.tokenizer(
-          [(context)],
+          history_string,
           return_tensors="pt",
           max_length=512,
           truncation=True
@@ -54,9 +58,9 @@ class BlenderbotWrapper(mlflow.pyfunc.PythonModel):
         )[0]
         history.append(response)
         # convert to tuples of list
-        response = [(history[i], history[i+1]) for i in range(0, len(history)-1, 2)]
+        #response = [(history[i], history[i+1]) for i in range(0, len(history)-1, 2)]
         response_payload = {
-          "answer": response[-1],
+          "answer": response,
           "history": history
         }
         return response_payload
